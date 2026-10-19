@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'applications_user/vin_decoder/**'
+      - '.github/workflows/build-vin-decoder.yml'
 
 jobs:
   build:
@@ -17,6 +18,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Free up disk space
+        run: |
+          rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+          df -h
+
       - name: Build full firmware first
         run: |
           . $IDF_PATH/export.sh
@@ -27,7 +33,13 @@ jobs:
           . $IDF_PATH/export.sh
           ./buildFap.sh applications_user/vin_decoder
 
+      - name: Show real error on failure
+        if: failure()
+        run: |
+          find . -path '*/log/idf_py_std*_output_*' -exec echo "== {} ==" \; -exec cat {} \;
+
       - name: Upload FAP
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: vin_decoder-fap
